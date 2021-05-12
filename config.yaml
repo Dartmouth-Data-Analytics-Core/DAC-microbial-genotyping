@@ -47,3 +47,6 @@ freebayes_path: "/dartfs-hpc/rc/lab/G/GMBSR_bioinfo/misc/sullivan/tools/freebaye
 
 spades_path: "/dartfs-hpc/rc/lab/G/GMBSR_bioinfo/misc/sullivan/tools/spades/SPAdes-3.15.2-Linux/bin/spades.py"
 minimap2_path: "/dartfs-hpc/rc/lab/G/GMBSR_bioinfo/misc/sullivan/tools/minimap/minimap2-2.18_x64-linux/minimap2"
+
+lumpy_scripts: "/dartfs-hpc/rc/lab/G/GMBSR_bioinfo/misc/sullivan/tools/lumpy-sv/scripts/"
+lumpyexp_path: "/dartfs-hpc/rc/lab/G/GMBSR_bioinfo/misc/sullivan/tools/lumpy-sv/bin/lumpyexpress"

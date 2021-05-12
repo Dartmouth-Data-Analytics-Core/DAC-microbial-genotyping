@@ -13,8 +13,8 @@ rule all:
     input:
         expand("trimmed_merged/{sample}_R1.fastq.gz", sample=sample_list),
         expand("trimmed_merged/{sample}_R2.fastq.gz", sample=sample_list),
-        expand("alignment/{sample}.srt.bam", sample=sample_list),
-        expand("alignment/{sample}.srt.bam.bai", sample=sample_list),
+        #expand("alignment/{sample}.srt.bam", sample=sample_list),
+        #expand("alignment/{sample}.srt.bam.bai", sample=sample_list),
 #        expand("alignment/stats/{sample}.srt.bam.flagstat", sample=sample_list),
         expand("markdup/{sample}.mkdup.bam", sample=sample_list),
 #        expand("metrics/picard/{sample}.picard.rna.metrics.txt", sample=sample_list),
@@ -22,6 +22,7 @@ rule all:
         expand("freebayes/{sample}.raw.vcf", sample=sample_list),
         expand("assembly/{sample}/scaffolds.fasta", sample=sample_list),
         expand("assembly/{sample}/scaffolds_to_ref.bam", sample=sample_list),
+        expand("lumpy/{sample}.raw.vcf", sample=sample_list),
     output:
         "multiqc_report.html"
     shell: """
@@ -100,6 +101,30 @@ rule freebayes:
     shell: """
             {params.freebayes} --min-coverage 5 --limit-coverage 100 --min-alternate-fraction .2 --min-mapping-quality 15 --min-alternate-count 2 -f {params.ref_fa}  markdup/{params.sample}.mkdup.bam  > freebayes/{params.sample}.raw.vcf
 #            rm -f alignment/{params.sample}.srt.bam
+"""
+
+rule lumpy:
+    input: "markdup/{sample}.mkdup.bam"
+    output: "lumpy/{sample}.raw.vcf"
+    params:
+        sample = lambda wildcards:  wildcards.sample,
+        lumpyexp = config['lumpyexp_path'],
+        lumpy_scripts = config['lumpy_scripts'],
+        ref_fa = config['reference_fasta'],
+        samtools = config['samtools_path'],
+    resources: threads="4", maxtime="4:00:00", memory="4gb",
+    shell: """
+        {params.samtools} addreplacerg -r 'ID:1' -r 'LB:1' -r 'SM:1' -o lumpy/{params.sample}.rg.bam markdup/{params.sample}.mkdup.bam
+        {params.samtools} index lumpy/{params.sample}.rg.bam
+
+        {params.samtools} view -b -F 1294 lumpy/{params.sample}.rg.bam > lumpy/{params.sample}.discordants.unsorted.bam
+        {params.samtools} view -h lumpy/{params.sample}.rg.bam | {params.lumpy_scripts}/extractSplitReads_BwaMem -i stdin | {params.samtools} view -Sb - > lumpy/{params.sample}.splitters.unsorted.bam
+
+        {params.samtools} sort -T /scratch/samtools_lumpyd_{params.sample} -m 512M lumpy/{params.sample}.discordants.unsorted.bam > lumpy/{params.sample}.discordants.bam
+        {params.samtools} sort -T /scratch/samtools_lumpys_{params.sample} -m 512M lumpy/{params.sample}.splitters.unsorted.bam > lumpy/{params.sample}.splitters.bam
+
+        {params.lumpyexp} -B lumpy/{params.sample}.rg.bam -S lumpy/{params.sample}.splitters.bam -D lumpy/{params.sample}.discordants.bam -o lumpy/{params.sample}.raw.vcf
+        
 """
 
 
